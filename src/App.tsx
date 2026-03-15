@@ -26,6 +26,7 @@ import Superuser from './pages/Superuser';
 import Settings from './pages/Settings';
 import SettingsLayout from './pages/SettingsLayout';
 import DimensionAdmin from './pages/DimensionAdmin';
+import Backup from './pages/Backup';
 import AnnualReport from './pages/AnnualReport';
 import Inbox from './pages/Inbox';
 import Subscriptions from './pages/Subscriptions';
@@ -110,6 +111,7 @@ function AppRoutes() {
           <Route path="company" element={<Settings />} />
           <Route path="users" element={<Users />} />
           <Route path="dimensions" element={<DimensionAdmin />} />
+          <Route path="backup" element={<Backup />} />
           <Route path="superuser" element={<SuperuserRoute><Superuser /></SuperuserRoute>} />
         </Route>
       </Route>

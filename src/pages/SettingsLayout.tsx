@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Building2, Users, ShieldAlert, Layers } from 'lucide-react';
+import { Building2, Users, ShieldAlert, Layers, Archive } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const tabs = [
   { to: '/settings/company',    icon: Building2, label: 'Företag' },
   { to: '/settings/users',      icon: Users,     label: 'Användare' },
   { to: '/settings/dimensions', icon: Layers,    label: 'Dimensioner' },
+  { to: '/settings/backup',     icon: Archive,   label: 'Säkerhetskopia' },
 ];
 
 const superuserTab = { to: '/settings/superuser', icon: ShieldAlert, label: 'Superuser' };

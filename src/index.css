@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-white/10; }
+  body {
+    @apply bg-surface-0 text-white antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    margin: 0;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-50; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-400 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-brand-500; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-surface-300 hover:bg-surface-400 text-white/80 text-sm font-medium rounded-lg transition-all duration-150 active:scale-95;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 text-white/60 hover:text-white hover:bg-surface-200 text-sm font-medium rounded-lg transition-all duration-150;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-medium rounded-lg border border-red-500/20 transition-all duration-150;
+  }
+  .card {
+    @apply bg-surface-100 border border-white/5 rounded-xl p-5;
+  }
+  .input {
+    @apply w-full bg-surface-200 border border-white/10 text-white placeholder-white/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/30 transition-all;
+  }
+  .label {
+    @apply block text-xs font-medium text-white/50 mb-1.5 uppercase tracking-wide;
+  }
+  .badge-draft    { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/60; }
+  .badge-sent     { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-500/20 text-brand-300; }
+  .badge-paid     { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400; }
+  .badge-overdue  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400; }
+
+  .table-row-hover { @apply hover:bg-white/[0.02] transition-colors cursor-pointer; }
+  .stat-card { @apply card flex flex-col gap-3; }
+}
+
+/* Chat bubbles */
+.chat-user {
+  @apply ml-auto bg-brand-600 text-white rounded-2xl rounded-br-sm px-4 py-3 max-w-[75%] text-sm leading-relaxed;
+}
+.chat-ai {
+  @apply bg-surface-200 text-white/90 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[85%] text-sm leading-relaxed;
+}
+
+/* Typing dots */
+.typing-dot {
+  @apply w-2 h-2 rounded-full bg-white/40;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Sidebar active */
+.nav-active {
+  @apply bg-brand-600/20 text-brand-300;
+  border-left: 2px solid theme('colors.brand.500');
+}
+
+/* Recharts dark theme overrides */
+.recharts-legend-item-text { color: rgba(255,255,255,0.4) !important; }
+.recharts-default-legend   { color: rgba(255,255,255,0.4) !important; }
+
+/* ── Markdown i AI-chatbubblan ─────────────────────────────────────── */
+.chat-ai table            { width: 100%; border-collapse: collapse; font-size: 0.73rem; margin: 0.5rem 0; }
+.chat-ai th               { text-align: left; padding: 4px 10px; color: rgba(255,255,255,0.35); border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: 500; white-space: nowrap; }
+.chat-ai td               { padding: 4px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); }
+.chat-ai tr:last-child td { border-bottom: none; }
+.chat-ai code             { background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 4px; font-size: 0.72rem; font-family: ui-monospace, monospace; }
+.chat-ai strong           { color: rgba(255,255,255,0.92); font-weight: 600; }
+.chat-ai em               { color: rgba(255,255,255,0.7); }
+.chat-ai p                { margin: 0.2rem 0; line-height: 1.5; }
+.chat-ai p:first-child    { margin-top: 0; }
+.chat-ai p:last-child     { margin-bottom: 0; }
+.chat-ai ul, .chat-ai ol  { padding-left: 1.25rem; margin: 0.25rem 0; }
+.chat-ai li               { margin: 0.15rem 0; color: rgba(255,255,255,0.75); }
+.chat-ai h1,.chat-ai h2,.chat-ai h3 { color: rgba(255,255,255,0.9); font-weight: 600; margin: 0.4rem 0 0.2rem; }
+.chat-ai blockquote       { border-left: 2px solid rgba(255,255,255,0.15); padding-left: 0.75rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0; }

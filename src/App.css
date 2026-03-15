@@ -1,0 +1,6 @@
+/* Reset Vite defaults — all styling is in index.css via Tailwind */
+#root {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}

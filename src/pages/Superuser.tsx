@@ -19,6 +19,8 @@ export default function Superuser() {
   const [users, setUsers] = useState<SuperuserUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Assignment modal
   const [assignModal, setAssignModal] = useState<{ userId: string; userName: string } | null>(null);
@@ -68,6 +70,22 @@ export default function Superuser() {
   const handleRemove = async (userId: string, companyId: string) => {
     await api.delete(`/superuser/users/${userId}/companies/${companyId}`);
     await loadData();
+  };
+
+  const handleResetDemo = async () => {
+    if (!window.confirm('Radera all existerande demodata för Demo Tech AB och skapa ny?\n\nDetta kan inte ångras.')) return;
+    setResetting(true);
+    setResetResult(null);
+    try {
+      const res = await api.post<{ success: boolean; stats: { customers: number; suppliers: number; subscriptions: number; invoices: number; expenses: number; transactions: number; vatReports: number; bankTransactions: number } }>('/superuser/reset-demo', {});
+      const s = res.stats;
+      setResetResult({ success: true, message: `${s.customers} kunder · ${s.invoices} fakturor · ${s.expenses} utgifter · ${s.transactions} verifikat · ${s.vatReports} momsrapporter` });
+      await loadData();
+    } catch (e: unknown) {
+      setResetResult({ success: false, message: e instanceof Error ? e.message : 'Okänt fel' });
+    } finally {
+      setResetting(false);
+    }
   };
 
   if (loading) {
@@ -218,6 +236,33 @@ export default function Superuser() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Demo data reset */}
+      {tab === 'companies' && (
+        <div className="mt-6 card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Demodata</h2>
+              <p className="text-xs text-white/40 mt-0.5">Nollställ och återskapa Demo Tech AB med heltäckande testdata</p>
+            </div>
+            <button
+              onClick={handleResetDemo}
+              disabled={resetting}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-orange-500/30 text-orange-300 text-sm hover:bg-orange-500/10 transition-colors disabled:opacity-50"
+            >
+              {resetting
+                ? <><Loader2 size={14} className="animate-spin" /> Återställer...</>
+                : <><RefreshCw size={14} /> Återställ Demo Tech AB</>
+              }
+            </button>
+          </div>
+          {resetResult && (
+            <div className={`rounded-lg px-4 py-3 text-sm ${resetResult.success ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
+              {resetResult.success ? `✓ Demodata återställd — ${resetResult.message}` : `✗ ${resetResult.message}`}
+            </div>
+          )}
         </div>
       )}
 

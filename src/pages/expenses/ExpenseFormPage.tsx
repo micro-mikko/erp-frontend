@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Trash2, Package } from 'lucide-react';
 import { api } from '../../api/client';
-import type { Expense, Category } from '../../api/types';
+import type { Expense, Category, AssetType, DepreciationStart } from '../../api/types';
 import CategoryPicker from '../../components/CategoryPicker';
 import SupplierPicker from '../../components/SupplierPicker';
 import DimensionPicker from '../../components/DimensionPicker';
@@ -66,8 +66,23 @@ export default function ExpenseFormPage() {
   });
   const [lines, setLines] = useState<LineItem[]>([emptyLine()]);
 
+  // Asset activation
+  const [activateAsAsset, setActivateAsAsset] = useState(false);
+  const [assetName, setAssetName] = useState('');
+  const [assetType, setAssetType] = useState<AssetType>('COMPUTER_IT');
+  const [depreciationYears, setDepreciationYears] = useState(5);
+  const [depreciationStart, setDepreciationStart] = useState<DepreciationStart>('ACQUISITION_MONTH');
+  const [assetThreshold, setAssetThreshold] = useState(500);
+  const [assetCategories, setAssetCategories] = useState<string[]>(['COMPUTER_IT', 'PHONE_TABLET', 'VEHICLE', 'MACHINERY']);
+
   useEffect(() => {
     api.get<Category[]>('/accounting/categories').then(setCategories).catch(console.error);
+    api.get<{ assetActivationThreshold?: number; assetActivationCategories?: string[] }>('/settings')
+      .then(s => {
+        if (s.assetActivationThreshold != null) setAssetThreshold(s.assetActivationThreshold);
+        if (s.assetActivationCategories) setAssetCategories(s.assetActivationCategories);
+      })
+      .catch(console.error);
     if (!id) {
       setLoading(false);
       return;
@@ -144,6 +159,14 @@ export default function ExpenseFormPage() {
     { total: 0, vatAmount: 0 }
   );
 
+  // Map category ID to asset type for suggestion
+  const CATEGORY_TO_ASSET_TYPE: Record<string, AssetType> = {
+    hardware: 'COMPUTER_IT',
+  };
+  const firstCat = lines[0]?.categoryId || '';
+  const suggestAsset = totals.total >= assetThreshold
+    && (firstCat === 'hardware' || assetCategories.some(ac => ac === CATEGORY_TO_ASSET_TYPE[firstCat]));
+
   // ── Spara ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: FormEvent) => {
@@ -155,7 +178,7 @@ export default function ExpenseFormPage() {
     setError('');
     setSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         date: form.date,
         description: form.description,
         supplier: form.supplier || null,
@@ -174,6 +197,15 @@ export default function ExpenseFormPage() {
           dimensionId: l.dimensionId || null,
         })),
       };
+      if (activateAsAsset) {
+        payload.activateAsAsset = true;
+        payload.assetData = {
+          name: assetName || form.description,
+          assetType,
+          depreciationYears,
+          depreciationStart,
+        };
+      }
       if (isEdit && id) {
         await api.put(`/expenses/${id}`, payload);
         navigate(`/expenses/${id}`);
@@ -357,6 +389,75 @@ export default function ExpenseFormPage() {
             </div>
           </div>
         </div>
+
+        {/* Asset activation banner */}
+        {suggestAsset && (
+          <div className="p-4 bg-brand-600/10 border border-brand-500/20 rounded-xl space-y-3">
+            <div className="flex items-start gap-3">
+              <Package size={18} className="text-brand-400 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-brand-300">Aktivera som anläggningstillgång?</div>
+                <div className="text-xs text-white/40 mt-0.5">
+                  Beloppet ({fmt(totals.total)}) överstiger tröskelvärdet ({fmt(assetThreshold)}).
+                  Kostnaden kan aktiveras och skrivas av över tid istället för att kostnadsföras direkt.
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={activateAsAsset}
+                  onChange={e => setActivateAsAsset(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-surface-200 text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-sm text-white/60">Aktivera</span>
+              </label>
+            </div>
+            {activateAsAsset && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="label">Tillgångsnamn</label>
+                  <input
+                    className="input"
+                    value={assetName}
+                    onChange={e => setAssetName(e.target.value)}
+                    placeholder={form.description || 'Namn på tillgången'}
+                  />
+                </div>
+                <div>
+                  <label className="label">Tillgångstyp</label>
+                  <select className="input" value={assetType} onChange={e => setAssetType(e.target.value as AssetType)}>
+                    <option value="COMPUTER_IT">Dator & IT</option>
+                    <option value="PHONE_TABLET">Telefon & surfplatta</option>
+                    <option value="VEHICLE">Fordon</option>
+                    <option value="MACHINERY">Maskiner</option>
+                    <option value="FURNITURE">Möbler</option>
+                    <option value="BUILDING">Byggnader</option>
+                    <option value="OTHER">Övrigt</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Avskrivningstid (år)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={depreciationYears}
+                    onChange={e => setDepreciationYears(parseInt(e.target.value) || 5)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Avskrivning börjar</label>
+                  <select className="input" value={depreciationStart} onChange={e => setDepreciationStart(e.target.value as DepreciationStart)}>
+                    <option value="ACQUISITION_MONTH">Anskaffningsmånad</option>
+                    <option value="NEXT_MONTH">Nästa månad</option>
+                    <option value="FISCAL_YEAR_START">Nästa räkenskapsårsstart</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">{error}</div>

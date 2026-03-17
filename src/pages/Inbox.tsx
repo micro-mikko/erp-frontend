@@ -2,11 +2,11 @@ import { Fragment, useEffect, useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Inbox as InboxIcon, Upload, FileText, Image, Trash2, Loader2,
-  Search, ExternalLink, CloudUpload, Wand2, CheckCircle, ChevronDown, Plus,
+  Search, ExternalLink, CloudUpload, Wand2, CheckCircle, ChevronDown, Plus, Package,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Document, ExtractedDocumentData, Expense } from '../api/types';
+import type { Document, ExtractedDocumentData, Expense, AssetType, DepreciationStart } from '../api/types';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import SupplierPicker from '../components/SupplierPicker';
@@ -61,6 +61,13 @@ interface ApprovePayload {
   categoryId?: string;
   subcategoryId?: string;
   description?: string;
+  activateAsAsset?: boolean;
+  assetData?: {
+    name: string;
+    assetType: AssetType;
+    depreciationYears: number;
+    depreciationStart: DepreciationStart;
+  };
 }
 
 // ─── ExtractedDataPanel ──────────────────────────────────────────────────────
@@ -91,6 +98,15 @@ function ExtractedDataPanel({
   const [subcategoryId, setSubcategoryId] = useState('');
   const [description, setDescription] = useState(data.description || '');
 
+  // Asset activation
+  const [activateAsAsset, setActivateAsAsset] = useState(false);
+  const [assetName, setAssetName] = useState('');
+  const [assetType, setAssetType] = useState<AssetType>('COMPUTER_IT');
+  const [depYears, setDepYears] = useState(5);
+  const [depStart, setDepStart] = useState<DepreciationStart>('ACQUISITION_MONTH');
+
+  const suggestAsset = (data.totalAmount ?? 0) >= 500;
+
   const handleCategoryChange = (catId: string, subId: string) => {
     setCategoryId(catId);
     setSubcategoryId(subId);
@@ -105,14 +121,24 @@ function ExtractedDataPanel({
       return;
     }
 
-    onApprove(doc, {
+    const payload: ApprovePayload = {
       supplierId: createNewSupplier ? undefined : supplier?.id,
       createSupplier: createNewSupplier,
       supplierName: createNewSupplier ? newSupplierName : undefined,
       categoryId: categoryId || undefined,
       subcategoryId: subcategoryId || undefined,
       description: description.trim(),
-    });
+    };
+    if (activateAsAsset) {
+      payload.activateAsAsset = true;
+      payload.assetData = {
+        name: assetName || description.trim() || data.description || '',
+        assetType,
+        depreciationYears: depYears,
+        depreciationStart: depStart,
+      };
+    }
+    onApprove(doc, payload);
   };
 
   return (
@@ -290,6 +316,45 @@ function ExtractedDataPanel({
             </div>
           </div>
 
+          {/* Asset activation suggestion */}
+          {suggestAsset && (
+            <div className="p-3 bg-brand-600/10 border border-brand-500/20 rounded-lg space-y-2">
+              <div className="flex items-center gap-2">
+                <Package size={14} className="text-brand-400" />
+                <span className="text-xs font-medium text-brand-300">Aktivera som anläggningstillgång?</span>
+                <label className="ml-auto flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={activateAsAsset}
+                    onChange={e => { e.stopPropagation(); setActivateAsAsset(e.target.checked); }}
+                    onClick={e => e.stopPropagation()}
+                    className="w-3.5 h-3.5 rounded border-white/20 bg-surface-200 text-brand-500"
+                  />
+                  <span className="text-xs text-white/50">Aktivera</span>
+                </label>
+              </div>
+              {activateAsAsset && (
+                <div className="grid grid-cols-2 gap-2" onClick={e => e.stopPropagation()}>
+                  <input className="input text-xs" value={assetName} onChange={e => setAssetName(e.target.value)} placeholder="Tillgångsnamn" />
+                  <select className="input text-xs" value={assetType} onChange={e => setAssetType(e.target.value as AssetType)}>
+                    <option value="COMPUTER_IT">Dator & IT</option>
+                    <option value="PHONE_TABLET">Telefon</option>
+                    <option value="VEHICLE">Fordon</option>
+                    <option value="MACHINERY">Maskiner</option>
+                    <option value="FURNITURE">Möbler</option>
+                    <option value="OTHER">Övrigt</option>
+                  </select>
+                  <input className="input text-xs" type="number" min="1" max="50" value={depYears} onChange={e => setDepYears(parseInt(e.target.value) || 5)} placeholder="År" />
+                  <select className="input text-xs" value={depStart} onChange={e => setDepStart(e.target.value as DepreciationStart)}>
+                    <option value="ACQUISITION_MONTH">Anskaffningsmånad</option>
+                    <option value="NEXT_MONTH">Nästa månad</option>
+                    <option value="FISCAL_YEAR_START">Räkenskapsårsstart</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Approve button */}
           <div className="flex justify-end pt-1">
             <button
@@ -302,7 +367,7 @@ function ExtractedDataPanel({
               ) : (
                 <CheckCircle size={14} />
               )}
-              Skapa utgift
+              {activateAsAsset ? 'Skapa utgift + tillgång' : 'Skapa utgift'}
             </button>
           </div>
         </div>

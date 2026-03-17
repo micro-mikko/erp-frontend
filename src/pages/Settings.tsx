@@ -15,6 +15,8 @@ interface CompanySettings {
   email: string | null;
   languagePreference: string;
   vatReportingPeriod: string;
+  assetActivationThreshold: number;
+  assetActivationCategories: string[];
 }
 
 export default function Settings() {
@@ -31,13 +33,17 @@ export default function Settings() {
     fetch('/api/settings', {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => {
+        if (data.error) throw new Error(data.error);
         setSettings(data);
         setForm(data);
         setLoading(false);
       })
-      .catch(() => { setError('Kunde inte hämta inställningar'); setLoading(false); });
+      .catch((err) => { setError(`Kunde inte hämta inställningar: ${err.message}`); setLoading(false); });
   }, []);
 
   const handleChange = (field: keyof CompanySettings, value: string) => {
@@ -62,6 +68,8 @@ export default function Settings() {
           email:              form.email || null,
           languagePreference:  form.languagePreference || 'sv',
           vatReportingPeriod: form.vatReportingPeriod || 'MONTHLY',
+          assetActivationThreshold: form.assetActivationThreshold ?? 500,
+          assetActivationCategories: form.assetActivationCategories ?? [],
         }),
       });
       if (!res.ok) throw new Error('Sparning misslyckades');
@@ -173,6 +181,66 @@ export default function Settings() {
           <p className="text-xs text-white/30 mt-1">
             Styr vilket datumintervall som krävs vid momsanmälan till Vero.fi.
           </p>
+        </div>
+      </div>
+
+      {/* Asset activation settings */}
+      <div className="rounded-2xl border border-white/8 bg-white/5 p-5 space-y-4">
+        <h2 className="text-sm font-medium text-white/70">Anläggningstillgångar</h2>
+        <p className="text-xs text-white/40">
+          Utgifter som överstiger tröskelvärdet och tillhör valda kategorier
+          kan aktiveras som anläggningstillgångar med linjär avskrivning.
+        </p>
+        <div>
+          <label className="label">Aktiveringströskel (EUR)</label>
+          <input
+            type="number"
+            min="0"
+            step="50"
+            value={form.assetActivationThreshold ?? 500}
+            onChange={e => {
+              const val = parseFloat(e.target.value) || 0;
+              setForm(prev => ({ ...prev, assetActivationThreshold: val }));
+              setSaved(false);
+            }}
+            className="input w-auto"
+          />
+          <p className="text-xs text-white/30 mt-1">
+            Utgifter under detta belopp kostnadsförs direkt. Standard: 500 EUR.
+          </p>
+        </div>
+        <div>
+          <label className="label">Kategorier som föreslår aktivering</label>
+          <div className="space-y-1.5 mt-1">
+            {[
+              { value: 'COMPUTER_IT', label: 'Dator & IT' },
+              { value: 'PHONE_TABLET', label: 'Telefon & surfplatta' },
+              { value: 'VEHICLE', label: 'Fordon' },
+              { value: 'MACHINERY', label: 'Maskiner' },
+              { value: 'FURNITURE', label: 'Möbler' },
+              { value: 'BUILDING', label: 'Byggnader' },
+            ].map(cat => {
+              const cats = form.assetActivationCategories ?? [];
+              const checked = cats.includes(cat.value);
+              return (
+                <label key={cat.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      const updated = checked
+                        ? cats.filter((c: string) => c !== cat.value)
+                        : [...cats, cat.value];
+                      setForm(prev => ({ ...prev, assetActivationCategories: updated }));
+                      setSaved(false);
+                    }}
+                    className="w-3.5 h-3.5 rounded border-white/20 bg-surface-200 text-brand-500"
+                  />
+                  <span className="text-sm text-white/60">{cat.label}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Users, Receipt, BookOpen,
   Calculator, Bot, LogOut, Building2, ChevronRight,
-  ChevronsUpDown, Settings, ClipboardList, Truck, Inbox
+  ChevronsUpDown, Settings, ClipboardList, Truck, Inbox, Package
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/customers',      icon: Users,         label: 'Kunder' },
   { to: '/suppliers',      icon: Truck,         label: 'Leverantörer' },
   { to: '/expenses',       icon: Receipt,       label: 'Utgifter' },
+  { to: '/assets',         icon: Package,       label: 'Tillgångar' },
   { to: '/accounting',     icon: BookOpen,       label: 'Bokföring' },
   { to: '/annual-report', icon: ClipboardList,  label: 'Bokslut' },
   { to: '/vat',           icon: Calculator,     label: 'Moms' },

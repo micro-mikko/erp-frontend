@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
-import { Bot, Send, User, Sparkles, Trash2, FileText, Users, Receipt, BookMarked, BarChart3 } from 'lucide-react';
+import { Bot, Send, User, Sparkles, Trash2, FileText, Users, Receipt, BookMarked, BarChart3, Package } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from '../api/client';
@@ -18,6 +18,8 @@ const SUGGESTIONS = [
   { icon: BookMarked,  text: 'Bokför tillskott till eget kapital 1 000 €' },
   { icon: BarChart3,   text: 'Visa senaste verifikat' },
   { icon: Sparkles,    text: 'Skapa en faktura för Acme Oy' },
+  { icon: Package,     text: 'Visa alla anläggningstillgångar' },
+  { icon: Package,     text: 'Bör jag aktivera en utgift på 2000 € som tillgång?' },
 ];
 
 function formatTime(d: Date) {

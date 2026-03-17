@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, ChevronDown, ChevronRight, Loader2, Search, ChevronUp, Paperclip, Plus, X } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, Loader2, Search, ChevronUp, Paperclip, Plus, X, Package } from 'lucide-react';
 import { api } from '../api/client';
 import type { Account, Transaction } from '../api/types';
 import { fileUrl } from './Inbox';
@@ -81,6 +81,7 @@ function VoucherModal({ accounts, onClose, onCreated }: {
   onCreated: (tx: Transaction) => void;
 }) {
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [mode, setMode] = useState<'voucher' | 'asset'>('voucher');
   const [date, setDate] = useState(today);
   const [description, setDescription] = useState('');
   const [lines, setLines] = useState<VoucherLine[]>([
@@ -89,6 +90,12 @@ function VoucherModal({ accounts, onClose, onCreated }: {
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Asset activation fields
+  const [assetName, setAssetName] = useState('');
+  const [assetAmount, setAssetAmount] = useState('');
+  const [assetType, setAssetType] = useState('COMPUTER_IT');
+  const [depYears, setDepYears] = useState('5');
 
   const totalDebit  = lines.reduce((s, l) => s + (parseFloat(l.debit)  || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
@@ -103,21 +110,44 @@ function VoucherModal({ accounts, onClose, onCreated }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSave) return;
     setSaving(true);
     setError('');
     try {
-      const tx = await api.post<Transaction>('/accounting/transactions', {
-        date,
-        description: description.trim(),
-        lines: lines.map(l => ({
-          accountId:   l.accountId,
-          description: l.description.trim() || undefined,
-          debit:       parseFloat(l.debit)  || 0,
-          credit:      parseFloat(l.credit) || 0,
-        })),
-      });
-      onCreated(tx);
+      if (mode === 'asset') {
+        // Create asset via API, which also creates the voucher
+        const amt = parseFloat(assetAmount) || 0;
+        if (!assetName.trim() || amt <= 0) {
+          setError('Namn och belopp krävs');
+          setSaving(false);
+          return;
+        }
+        await api.post('/assets', {
+          name: assetName.trim(),
+          assetType,
+          acquisitionDate: date,
+          acquisitionValue: amt,
+          depreciationYears: parseInt(depYears) || 5,
+          depreciationStart: 'ACQUISITION_MONTH',
+          description: description.trim() || undefined,
+        });
+        // Reload transactions to show the new voucher
+        const txs = await api.get<Transaction[]>('/accounting/transactions');
+        if (txs.length > 0) onCreated(txs[0]);
+        else onClose();
+      } else {
+        if (!canSave) return;
+        const tx = await api.post<Transaction>('/accounting/transactions', {
+          date,
+          description: description.trim(),
+          lines: lines.map(l => ({
+            accountId:   l.accountId,
+            description: l.description.trim() || undefined,
+            debit:       parseFloat(l.debit)  || 0,
+            credit:      parseFloat(l.credit) || 0,
+          })),
+        });
+        onCreated(tx);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Kunde inte spara verifikat');
     } finally {
@@ -143,6 +173,32 @@ function VoucherModal({ accounts, onClose, onCreated }: {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Mode toggle */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('voucher')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                mode === 'voucher'
+                  ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
+                  : 'bg-surface-100 text-white/50 border border-white/5 hover:text-white/70'
+              }`}
+            >
+              Manuellt verifikat
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('asset')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                mode === 'asset'
+                  ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
+                  : 'bg-surface-100 text-white/50 border border-white/5 hover:text-white/70'
+              }`}
+            >
+              <Package size={12} /> Aktivering av tillgång
+            </button>
+          </div>
+
           {/* Date + Description */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -160,15 +216,74 @@ function VoucherModal({ accounts, onClose, onCreated }: {
               <input
                 type="text"
                 className="input w-full"
-                placeholder="T.ex. Manuell rättelse"
+                placeholder={mode === 'asset' ? 'T.ex. Ny laptop' : 'T.ex. Manuell rättelse'}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                required
+                required={mode === 'voucher'}
               />
             </div>
           </div>
 
-          {/* Lines */}
+          {/* Asset activation form */}
+          {mode === 'asset' && (
+            <div className="space-y-3 p-4 bg-brand-600/5 border border-brand-500/10 rounded-xl">
+              <div className="space-y-1">
+                <label className="text-xs text-white/40">Tillgångsnamn *</label>
+                <input
+                  type="text"
+                  className="input w-full"
+                  placeholder="MacBook Pro 16&quot;"
+                  value={assetName}
+                  onChange={e => setAssetName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-white/40">Belopp (EUR) *</label>
+                  <input
+                    type="number"
+                    className="input w-full"
+                    placeholder="1500"
+                    min="0"
+                    step="0.01"
+                    value={assetAmount}
+                    onChange={e => setAssetAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-white/40">Typ</label>
+                  <select className="input w-full" value={assetType} onChange={e => setAssetType(e.target.value)}>
+                    <option value="COMPUTER_IT">Dator & IT</option>
+                    <option value="PHONE_TABLET">Telefon</option>
+                    <option value="VEHICLE">Fordon</option>
+                    <option value="MACHINERY">Maskiner</option>
+                    <option value="FURNITURE">Möbler</option>
+                    <option value="BUILDING">Byggnader</option>
+                    <option value="OTHER">Övrigt</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-white/40">Avskr. år</label>
+                  <input
+                    type="number"
+                    className="input w-full"
+                    min="1"
+                    max="50"
+                    value={depYears}
+                    onChange={e => setDepYears(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-white/30">
+                Verifikat skapas automatiskt: DR 1200 (Maskiner & inventarier) / CR 2600 (Leverantörsskulder)
+              </p>
+            </div>
+          )}
+
+          {/* Lines (only for manual voucher mode) */}
+          {mode === 'voucher' && (
           <div className="space-y-2">
             <div className="grid grid-cols-[1.2fr_1fr_0.65fr_0.65fr_28px] gap-2 text-xs text-white/30 px-1">
               <span>Konto</span>
@@ -241,25 +356,32 @@ function VoucherModal({ accounts, onClose, onCreated }: {
               <Plus size={12} /> Lägg till rad
             </button>
           </div>
+          )}
 
           {/* Balance + actions */}
           <div className="flex items-center justify-between pt-3 border-t border-white/5">
-            <div className="flex items-center gap-4 text-xs">
-              <span className="text-white/40">
-                Debet: <span className="text-white/70 font-mono">{fmtNum(totalDebit)}</span>
-              </span>
-              <span className="text-white/40">
-                Kredit: <span className="text-white/70 font-mono">{fmtNum(totalCredit)}</span>
-              </span>
-              {totalDebit > 0 && !balanced && (
-                <span className="text-amber-400">
-                  Differens: {fmtNum(Math.abs(totalDebit - totalCredit))}
+            {mode === 'voucher' ? (
+              <div className="flex items-center gap-4 text-xs">
+                <span className="text-white/40">
+                  Debet: <span className="text-white/70 font-mono">{fmtNum(totalDebit)}</span>
                 </span>
-              )}
-              {balanced && totalDebit > 0 && (
-                <span className="text-emerald-400">✓ Balanserat</span>
-              )}
-            </div>
+                <span className="text-white/40">
+                  Kredit: <span className="text-white/70 font-mono">{fmtNum(totalCredit)}</span>
+                </span>
+                {totalDebit > 0 && !balanced && (
+                  <span className="text-amber-400">
+                    Differens: {fmtNum(Math.abs(totalDebit - totalCredit))}
+                  </span>
+                )}
+                {balanced && totalDebit > 0 && (
+                  <span className="text-emerald-400">✓ Balanserat</span>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-white/40">
+                {assetAmount && <span>Belopp: <span className="text-white/70 font-mono">{fmtNum(parseFloat(assetAmount) || 0)}</span> EUR</span>}
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <button
@@ -271,12 +393,12 @@ function VoucherModal({ accounts, onClose, onCreated }: {
               </button>
               <button
                 type="submit"
-                disabled={!canSave || saving}
+                disabled={mode === 'voucher' ? (!canSave || saving) : saving}
                 className="btn-primary text-sm flex items-center gap-1.5"
               >
                 {saving
                   ? <><Loader2 size={13} className="animate-spin" /> Sparar…</>
-                  : 'Spara verifikat'
+                  : mode === 'asset' ? <><Package size={13} /> Skapa tillgång</> : 'Spara verifikat'
                 }
               </button>
             </div>

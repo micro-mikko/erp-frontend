@@ -346,6 +346,7 @@ export interface AnnualReportBalanceSheet {
 export interface AnnualReportPeriod {
   incomeStatement: AnnualReportIncomeStatement;
   balanceSheet: AnnualReportBalanceSheet;
+  assetDetails?: AssetDetails;
 }
 
 export interface AnnualReportData {
@@ -363,6 +364,77 @@ export interface AnnualReportData {
   };
   current: AnnualReportPeriod;
   prev: AnnualReportPeriod;
+}
+
+// ─── Anläggningstillgångar ───────────────────────────────────────────────────
+
+export type AssetType = 'COMPUTER_IT' | 'PHONE_TABLET' | 'VEHICLE' | 'MACHINERY' | 'FURNITURE' | 'BUILDING' | 'OTHER';
+export type AssetStatus = 'ACTIVE' | 'FULLY_DEPRECIATED' | 'DISPOSED';
+export type DepreciationStart = 'ACQUISITION_MONTH' | 'NEXT_MONTH' | 'FISCAL_YEAR_START';
+
+export interface DepreciationRun {
+  id: string;
+  assetId: string;
+  year: number;
+  amount: number;
+  transactionId: string;
+  createdAt: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  assetType: AssetType;
+  description?: string;
+  acquisitionDate: string;
+  acquisitionValue: number;
+  depreciationYears: number;
+  depreciationStart: DepreciationStart;
+  status: AssetStatus;
+  expenseId?: string;
+  documentId?: string;
+  companyId: string;
+  createdAt: string;
+  updatedAt: string;
+  // Computed fields from enrichAsset()
+  currentBookValue?: number;
+  yearlyDepreciation?: number;
+  fullyDepreciatedDate?: string;
+  depreciationRuns?: DepreciationRun[];
+}
+
+export interface AssetSummary {
+  totalAcquisitionValue: number;
+  totalDepreciated: number;
+  totalBookValue: number;
+  activeCount: number;
+}
+
+export interface DepreciationPreviewItem {
+  assetId: string;
+  assetName: string;
+  year: number;
+  amount: number;
+  bookValueAfter: number;
+}
+
+export interface DepreciationPreview {
+  items: DepreciationPreviewItem[];
+  totalAmount: number;
+}
+
+export interface AssetTypeBreakdown {
+  assetType: string;
+  count: number;
+  acquisitionValue: number;
+  bookValue: number;
+}
+
+export interface AssetDetails {
+  totalAcquisitionValue: number;
+  totalBookValue: number;
+  totalDepreciated: number;
+  byType: AssetTypeBreakdown[];
 }
 
 export interface SubscriptionLine {

@@ -29,6 +29,7 @@ import DimensionAdmin from './pages/DimensionAdmin';
 import Backup from './pages/Backup';
 import AnnualReport from './pages/AnnualReport';
 import Inbox from './pages/Inbox';
+import AssetList from './pages/assets/AssetList';
 import Subscriptions from './pages/Subscriptions';
 import SubscriptionDetail from './pages/subscriptions/SubscriptionDetail';
 import SubscriptionForm from './pages/subscriptions/SubscriptionForm';
@@ -101,6 +102,7 @@ function AppRoutes() {
         <Route path="expenses/new" element={<ExpenseFormPage />} />
         <Route path="expenses/:id" element={<ExpenseDetail />} />
         <Route path="expenses/:id/edit" element={<ExpenseFormPage />} />
+        <Route path="assets" element={<AssetList />} />
         <Route path="dimensions" element={<DimensionsContent />} />
         <Route path="accounting" element={<Accounting />} />
         <Route path="annual-report" element={<AnnualReport />} />
